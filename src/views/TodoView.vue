@@ -1,9 +1,14 @@
 <template>
-  <div>
+  <div id="todo">
     <h1>My Todo List</h1>
     <div class="todo-form">
-      <input v-model="newTodo" name="todo" placeholder="tambah todo" />
-      <button>Add New Todo</button>
+      <input
+        v-model="todoBaru"
+        name="todo"
+        placeholder="tambah todo"
+        @keyup.enter="TAMBAH_TODO(todoBaru)"
+      />
+      <button @click="TAMBAH_TODO(todoBaru)">Add New Todo</button>
     </div>
     <div class="todo-list">
       <ApolloQuery
@@ -14,6 +19,7 @@
             todolist_todo {
               id
               text
+              is_done
             }
           }
         `)
@@ -23,39 +29,79 @@
           <div v-if="error">Ups Error</div>
           <div v-else-if="data" class="todo-list">
             <ul>
-              <li
-                v-for="todo in data.todolist_todo"
-                :key="todo.id"
-                class="todo"
-              >
-                <div class="content">
-                  <h3>{{ todo.text }}</h3>
-                </div>
-                <div class="content">
-                  <i class="fas fa-check-circle fa-2x"></i>
-                </div>
-              </li>
+              <TodoItem
+                v-for="(todo, index) in data.todolist_todo"
+                :key="index"
+                :todo="todo"
+                :index="todo.id"
+              />
             </ul>
           </div>
           <div v-else class="loading" />
         </template>
+        <ApolloSubscribeToMore
+          :document="
+            (gql) =>
+              gql(`
+                subscription {
+                  todolist_todo {
+                    id
+                    text
+                    is_done
+                  }
+                }
+          `)
+          "
+          :updateQuery="NEW_TODO"
+        />
       </ApolloQuery>
     </div>
   </div>
 </template>
 <script>
+import gql from "graphql-tag";
+import TodoItem from "@/components/TodoItem.vue";
 export default {
   data() {
     return {
-      newTodo: "",
+      todoBaru: "",
     };
+  },
+  components: {
+    TodoItem,
+  },
+  methods: {
+    async TAMBAH_TODO(text) {
+      if (this.todoBaru != "") {
+        await this.$apollo.mutate({
+          mutation: gql`
+            mutation ($text: String) {
+              insert_todolist_todo(objects: { text: $text }) {
+                returning {
+                  id
+                }
+              }
+            }
+          `,
+          variables: {
+            text,
+          },
+        });
+        this.todoBaru = "";
+      }
+    },
+    NEW_TODO(prev, { subscriptionData }) {
+      return {
+        todolist_todo: subscriptionData.data.todolist_todo,
+      };
+      // console.log(subscriptionData.data.todolist_todo);
+    },
   },
 };
 </script>
 <style scoped>
-body {
-  padding-top: 1em;
-  padding-bottom: 1em;
+#todo {
+  padding: 10px 0;
 }
 input {
   display: block;
@@ -72,12 +118,7 @@ input {
 .todo-form {
   margin-top: 30px;
 }
-.todo {
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
+
 button {
   margin-top: 10px;
   padding: 10px;
@@ -89,26 +130,6 @@ button {
   outline: none;
 }
 
-h3 {
-  margin: 0px;
-  padding: 0px;
-  text-transform: capitalize;
-}
-li {
-  list-style-type: none;
-  width: 50%;
-  margin: auto;
-  padding: 15px 0;
-  background-color: rgb(216, 216, 216);
-  border-radius: 20px;
-}
-.content {
-  flex: 1;
-}
-i {
-  cursor: pointer;
-  color: rgb(45, 163, 45);
-}
 .loading {
   margin: 20px auto 0;
   border: 16px solid #f3f3f3; /* Light grey */

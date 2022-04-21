@@ -18,6 +18,7 @@ const wslink = new WebSocketLink({
   uri: "ws://nuxt-graphql.hasura.app/v1/graphql",
   options: {
     reconnect: true,
+    lazy: true,
   },
 });
 
