@@ -7,54 +7,33 @@
         name="todo"
         placeholder="tambah todo"
         @keyup.enter="TAMBAH_TODO(todoBaru)"
+        v-if="!isSearch"
       />
-      <button @click="TAMBAH_TODO(todoBaru)">Add New Todo</button>
+      <input
+        v-model="search"
+        type="number"
+        min="1"
+        name="search"
+        v-if="isSearch"
+        placeholder="masukkan id"
+      />
+      <button @click="CHANGE_BUTTON">Search or Input</button>
     </div>
     <div class="todo-list">
-      <ApolloQuery
-        :query="
-          (gql) =>
-            gql(`
-        query {
-            todolist_todo {
-              id
-              text
-              is_done
-            }
-          }
-        `)
-        "
-      >
-        <template v-slot="{ result: { data, error } }">
-          <div v-if="error">Ups Error</div>
-          <div v-else-if="data" class="todo-list">
-            <ul>
-              <TodoItem
-                v-for="(todo, index) in data.todolist_todo"
-                :key="index"
-                :todo="todo"
-                :index="todo.id"
-              />
-            </ul>
-          </div>
-          <div v-else class="loading" />
-        </template>
-        <ApolloSubscribeToMore
-          :document="
-            (gql) =>
-              gql(`
-                subscription {
-                  todolist_todo {
-                    id
-                    text
-                    is_done
-                  }
-                }
-          `)
-          "
-          :updateQuery="NEW_TODO"
-        />
-      </ApolloQuery>
+      <template>
+        <div v-if="$apollo.queries.listTodo.error">Ups Error</div>
+        <div v-else-if="$apollo.queries.listTodo" class="todo-list">
+          <ul>
+            <TodoItem
+              v-for="(todo, index) in listTodo"
+              :key="index"
+              :todo="todo"
+              :index="todo.id"
+            />
+          </ul>
+        </div>
+        <div v-else class="loading">test</div>
+      </template>
     </div>
   </div>
 </template>
@@ -62,11 +41,45 @@
 import gql from "graphql-tag";
 import TodoItem from "@/components/TodoItem.vue";
 export default {
+  apollo: {
+    listTodo: {
+      query: gql`
+        query {
+          todolist_todo {
+            id
+            text
+            is_done
+          }
+        }
+      `,
+      update: (data) => data.todolist_todo,
+
+      subscribeToMore: {
+        document: gql(`
+                subscription {
+                  todolist_todo {
+                    id
+                    text
+                    is_done
+                  }
+                }
+          `),
+        updateQuery: (prev, { subscriptionData }) => {
+          return {
+            todolist_todo: subscriptionData.data.todolist_todo,
+          };
+        },
+      },
+    },
+  },
   data() {
     return {
       todoBaru: "",
+      isSearch: false,
+      search: "",
     };
   },
+
   components: {
     TodoItem,
   },
@@ -90,11 +103,9 @@ export default {
         this.todoBaru = "";
       }
     },
-    NEW_TODO(prev, { subscriptionData }) {
-      return {
-        todolist_todo: subscriptionData.data.todolist_todo,
-      };
-      // console.log(subscriptionData.data.todolist_todo);
+
+    CHANGE_BUTTON() {
+      this.isSearch = !this.isSearch;
     },
   },
 };
@@ -104,8 +115,6 @@ export default {
   padding: 10px 0;
 }
 input {
-  display: block;
-  margin: auto;
   border-top-style: hidden;
   border-right-style: hidden;
   border-left-style: hidden;
@@ -116,7 +125,10 @@ input {
   text-align: center;
 }
 .todo-form {
-  margin-top: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
 }
 
 button {
