@@ -15,9 +15,9 @@
       <i
         class="fas fa-check-circle fa-2x"
         @click="EDIT_DONE(index, !todo.is_done)"
-      ></i>
-      <i class="fas fa-edit fa-2x" @click="changeIsEdit"></i>
-      <i class="fas fa-trash fa-2x" @click="DELETE_TODO(index)"></i>
+      />
+      <i class="fas fa-edit fa-2x" @click="changeIsEdit" />
+      <i class="fas fa-trash fa-2x" @click="DELETE_TODO(index)" />
     </div>
   </li>
 </template>
@@ -29,15 +29,18 @@ export default {
     todo: Object,
     index: Number,
   },
+
   data() {
     return {
       editTodo: "",
       isEdit: false,
     };
   },
+
   created() {
     this.changeEdit();
   },
+
   methods: {
     changeEdit() {
       this.editTodo = this.todo.text;

@@ -8,6 +8,7 @@
         placeholder="tambah todo"
         @keyup.enter="TAMBAH_TODO(todoBaru)"
         v-if="!isSearch"
+        autocomplete="off"
       />
       <input
         v-model="search"
@@ -16,13 +17,15 @@
         name="search"
         v-if="isSearch"
         placeholder="masukkan id"
+        autocomplete="off"
       />
       <button @click="CHANGE_BUTTON">Search or Input</button>
     </div>
     <div class="todo-list">
       <template>
         <div v-if="$apollo.queries.listTodo.error">Ups Error</div>
-        <div v-else-if="$apollo.queries.listTodo" class="todo-list">
+
+        <div v-else-if="$apollo.queries.listTodo">
           <ul>
             <TodoItem
               v-for="(todo, index) in listTodo"
@@ -32,7 +35,7 @@
             />
           </ul>
         </div>
-        <div v-else class="loading">test</div>
+        <div v-else class="loading" />
       </template>
     </div>
   </div>
@@ -43,16 +46,35 @@ import TodoItem from "@/components/TodoItem.vue";
 export default {
   apollo: {
     listTodo: {
-      query: gql`
-        query {
-          todolist_todo {
-            id
-            text
-            is_done
-          }
+      query() {
+        if (this.search != "") {
+          return gql`
+            query ($id: Int) {
+              todolist_todo(where: { id: { _eq: $id } }) {
+                id
+                text
+                is_done
+              }
+            }
+          `;
+        } else {
+          return gql`
+            query {
+              todolist_todo {
+                id
+                text
+                is_done
+              }
+            }
+          `;
         }
-      `,
+      },
       update: (data) => data.todolist_todo,
+      variables() {
+        return {
+          id: parseInt(this.search),
+        };
+      },
 
       subscribeToMore: {
         document: gql(`
@@ -76,13 +98,14 @@ export default {
     return {
       todoBaru: "",
       isSearch: false,
-      search: "",
+      search: 0,
     };
   },
 
   components: {
     TodoItem,
   },
+
   methods: {
     async TAMBAH_TODO(text) {
       if (this.todoBaru != "") {
@@ -123,6 +146,7 @@ input {
   font-size: 1.3em;
   padding: 15px 0;
   text-align: center;
+  margin-bottom: 20px;
 }
 .todo-form {
   display: flex;
