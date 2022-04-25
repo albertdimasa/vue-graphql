@@ -70,10 +70,13 @@ export default {
         }
       },
       update: (data) => data.todolist_todo,
+
       variables() {
-        return {
-          id: parseInt(this.search),
-        };
+        if (this.search != "") {
+          return {
+            id: parseInt(this.search),
+          };
+        }
       },
 
       subscribeToMore: {
@@ -98,7 +101,7 @@ export default {
     return {
       todoBaru: "",
       isSearch: false,
-      search: 0,
+      search: "",
     };
   },
 
